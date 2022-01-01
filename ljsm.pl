@@ -71,7 +71,7 @@ use constant {
 # ===================================================================
 # end of public constants definition. no user-editable parts below this line
 # ===================================================================
-use constant BASE_URL	=> 'http://www.' . BASE_DOMAIN . '/';
+use constant BASE_URL	=> 'https://www.' . BASE_DOMAIN . '/';
 
 use constant {
 	MAX_TRIES		=> 5, # max tries to get page in case of failure
@@ -98,7 +98,9 @@ use HTTP::Cookies;
 use File::Path;
 use File::Basename;
 use File::Find;
-
+use IO::Socket::SSL;
+use Mozilla::CA;
+use LWP::Protocol::https;
 use Compress::Zlib;
 use Digest::MD5 qw(md5_hex);
 use Getopt::Std;
@@ -457,7 +459,7 @@ sub get_posts {
 						'itemid'	=> $post_id,
 						'amuser'	=> $user,
 						'keyword'	=> '',
-						'comments'	=> ($content =~ m#$post_id\.html\D+(\d+)\s+repl#)? $1 : 0
+						'comments'	=> ($content =~ m#$post_id\.html.+?(\d+)\s+repl#)? $1 : 0
 					};
 				} # link loop on the catalog page
 
@@ -890,7 +892,6 @@ EOH
 					$locallink = (index($title, '<a') > -1)?
 						"[<a href=\"$year/$month/$filename\" target=\"post\">read</a>]&nbsp; $title" :
 						"<a href=\"$year/$month/$filename\" target=\"post\">$title</a>";
-
 					print DF "<font color=\"gray\" size=\"-1\">" . $metapost->{'day'} . "</font> $locallink &nbsp;&nbsp;| <a href=\"" . &make_link($metapost->{'link_type'}, $metapost->{'amuser'}, $metapost->{'itemid'}) . "?usescheme=lynx\" target=\"_new\"><b>&raquo;</b></a><br>\n";
 					print DF "<p>\n";
 				}
@@ -960,7 +961,7 @@ sub process_html_file {
 	$title = '';
 	while ($line = <DF>) {
 		$kw = $1 if ($line =~ /<meta name="keywords" content="(.*?)">/);
-    $title = $1 if ($line =~ m#<title>(.*): $user</title>#);
+    $title = $1 if ($line =~ m#<title>(.*):.+?</title>#);
 		$title = $1 if ($line =~ m#<font face=["']Arial,Helvetica['"] size=['"]?\+1['"]?><i><b>(.*?)</b></i>#i);
 		$title = "<i>$1</i>" if ($line =~ m#<span class="heading">Error</span><br />(.*)$#i);
 		$title = "<i>$1</i>" if ($line =~ m#^<H1>Error</H1><P>(.*)</P>$#i);
